@@ -280,7 +280,7 @@ def main() -> None:
     """Запуск бота"""
     
     # Вставьте сюда токен вашего бота от @BotFather
-    TOKEN = "YOUR_BOT_TOKEN_HERE"
+    TOKEN = "8573720666:AAFY2LmmO8i4-MSXZuthGLh8fL2-_bjfmZc"
     
     # Создаем приложение
     application = Application.builder().token(TOKEN).build()
