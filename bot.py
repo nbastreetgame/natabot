@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 ADMIN_ID = 7014721682
 
 # ID канала
-CHANNEL_ID = -1001002199610557
+CHANNEL_ID = -1002199610557
 
 # Множество для хранения ID пользователей
 registered_users = set()
