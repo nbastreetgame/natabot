@@ -1,6 +1,8 @@
 import logging
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+import asyncio
+from datetime import datetime, timedelta
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 
 # Настройка логирования
 logging.basicConfig(
@@ -10,11 +12,27 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# ID администратора (замените на свой Telegram ID)
-ADMIN_ID = 7014721682  # Ваш ID
+# ID администратора
+ADMIN_ID = 7014721682
 
-# Множество для хранения ID пользователей, которые уже запускали бота
+# ID канала
+CHANNEL_ID = -1001002199610557
+
+# Множество для хранения ID пользователей
 registered_users = set()
+
+# Словарь для хранения активных подписок (user_id: task)
+active_subscriptions = {}
+
+# Длительность тарифов в днях
+TARIFF_DAYS = {
+    "1 день ❤️": 1,
+    "Неделя ❤️❤️": 7,
+    "1 Месяц 💋💋": 30,
+    "6 Месяцев 😇🥰🔥": 180,
+    "Год🔥🍌💦👍🏻": 365,
+    "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": None  # None = навсегда
+}
 
 # Обработчик команды /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -22,7 +40,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     
     user = update.effective_user
     
-    # Уведомляем администратора ТОЛЬКО о новых пользователях
+    # Уведомляем администратора только о новых пользователях
     if user.id not in registered_users:
         registered_users.add(user.id)
         try:
@@ -47,7 +65,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         one_time_keyboard=False
     )
     
-    # Отправляем приветственное сообщение
     await update.message.reply_text(
         "Добро пожаловать! Выберите нужный раздел:",
         reply_markup=reply_markup
@@ -57,7 +74,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def show_tariffs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Показывает список тарифов"""
     
-    # Создаем клавиатуру с тарифами
     keyboard = [
         [KeyboardButton("1 день ❤️")],
         [KeyboardButton("Неделя ❤️❤️")],
@@ -83,7 +99,6 @@ async def show_tariffs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 async def show_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Показывает информацию о подписке"""
     
-    # Создаем кнопку "Купить подписку"
     keyboard = [
         [KeyboardButton("✅ КУПИТЬ ПОДПИСКУ")]
     ]
@@ -100,13 +115,12 @@ async def show_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         reply_markup=reply_markup
     )
 
-# Обработчик нажатий на кнопки
+# Обработчик нажатий на кнопки тарифов
 async def handle_tariff(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обрабатывает выбор тарифа"""
     
     tariff = update.message.text
     
-    # Информация о тарифах с длительностью
     tariff_info = {
         "1 день ❤️": {
             "price": "500.00",
@@ -134,7 +148,6 @@ async def handle_tariff(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         }
     }
     
-    # Создаем кнопки для оплаты
     keyboard = [
         [KeyboardButton("💳 ОПЛАТИТЬ")],
         [KeyboardButton("👈 НАЗАД")]
@@ -149,7 +162,7 @@ async def handle_tariff(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     info = tariff_info.get(tariff)
     if info:
         response = (
-            f"Тариф: {tariff} 💋💋\n"
+            f"Тариф: {tariff}\n"
             f"Стоимость: {info['price']} 🇷🇺RUB\n"
             f"Срок действия: {info['duration']}\n\n"
             f"Вы получите доступ к следующим ресурсам:\n"
@@ -158,16 +171,53 @@ async def handle_tariff(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     else:
         response = "Неизвестный тариф"
     
-    # Сохраняем выбранный тариф
     context.user_data['selected_tariff'] = tariff
     
     await update.message.reply_text(response, reply_markup=reply_markup)
+
+# Обработчик кнопки "ОПЛАТИТЬ"
+async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обрабатывает оплату"""
+    selected_tariff = context.user_data.get('selected_tariff', 'Не выбран')
+    
+    prices = {
+        "1 день ❤️": "500.00",
+        "Неделя ❤️❤️": "1 000.00",
+        "1 Месяц 💋💋": "2 000.00",
+        "6 Месяцев 😇🥰🔥": "6 000.00",
+        "Год🔥🍌💦👍🏻": "10 000.00",
+        "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": "15 000.00"
+    }
+    
+    price = prices.get(selected_tariff, "0.00")
+    
+    payment_text = f"""Способ оплаты: На карту Т-Банк
+К оплате: {price} 🇷🇺RUB
+Реквизиты для оплаты:
+2200701046225592
+Т-банк
+Наталия💖
+__________________________
+Вы платите физическому лицу.
+Деньги поступят на счёт получателя."""
+    
+    keyboard = [
+        [KeyboardButton("⏳ Я ОПЛАТИЛ")],
+        [KeyboardButton("👈 НАЗАД")]
+    ]
+    
+    reply_markup = ReplyKeyboardMarkup(
+        keyboard,
+        resize_keyboard=True,
+        one_time_keyboard=False
+    )
+    
+    await update.message.reply_text(payment_text, reply_markup=reply_markup)
 
 # Обработчик кнопки "Я ОПЛАТИЛ"
 async def handle_paid(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обрабатывает подтверждение оплаты"""
     
-    # Создаем кнопку "ОТМЕНА"
     keyboard = [
         [KeyboardButton("🚫 ОТМЕНА")]
     ]
@@ -195,10 +245,17 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user = update.effective_user
     selected_tariff = context.user_data.get('selected_tariff', 'Не указан')
     
-    # Получаем фото в лучшем качестве
     photo = update.message.photo[-1]
     
-    # Отправляем администратору
+    # Создаем инлайн-кнопки для админа
+    keyboard = [
+        [
+            InlineKeyboardButton("✅ Одобрить", callback_data=f"approve_{user.id}_{selected_tariff}"),
+            InlineKeyboardButton("❌ Отклонить", callback_data=f"reject_{user.id}")
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
     try:
         await context.bot.send_photo(
             chat_id=ADMIN_ID,
@@ -206,17 +263,17 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             caption=f"💳 Новый чек об оплате:\n\n"
                     f"👤 Пользователь: {user.first_name} {user.last_name or ''}\n"
                     f"Username: @{user.username or 'нет'}\n"
-                    f"ID: {user.id}\n"
-                    f"Тариф: {selected_tariff}"
+                    f"ID: `{user.id}`\n"
+                    f"Тариф: {selected_tariff}",
+            reply_markup=reply_markup,
+            parse_mode='Markdown'
         )
         
-        # Подтверждаем пользователю
         await update.message.reply_text(
             "✅ Ваш чек получен!\n"
             "Ожидайте подтверждения от администратора."
         )
         
-        # Возвращаем к началу
         await start(update, context)
         
     except Exception as e:
@@ -224,6 +281,111 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await update.message.reply_text(
             "❌ Произошла ошибка. Попробуйте позже или свяжитесь с администратором."
         )
+
+# Функция автоматического удаления пользователя
+async def remove_user_after_delay(context: ContextTypes.DEFAULT_TYPE, user_id: int, days: int):
+    """Удаляет пользователя из канала через указанное количество дней"""
+    await asyncio.sleep(days * 24 * 60 * 60)  # Конвертируем дни в секунды
+    
+    try:
+        await context.bot.ban_chat_member(
+            chat_id=CHANNEL_ID,
+            user_id=user_id
+        )
+        # Сразу разбаниваем чтобы можно было добавить снова
+        await context.bot.unban_chat_member(
+            chat_id=CHANNEL_ID,
+            user_id=user_id
+        )
+        
+        # Уведомляем админа
+        await context.bot.send_message(
+            chat_id=ADMIN_ID,
+            text=f"⏰ Подписка пользователя {user_id} истекла.\n"
+                 f"Пользователь удален из канала."
+        )
+        
+        # Удаляем из активных подписок
+        if user_id in active_subscriptions:
+            del active_subscriptions[user_id]
+            
+    except Exception as e:
+        logger.error(f"Ошибка удаления пользователя {user_id}: {e}")
+
+# Обработчик callback кнопок (Одобрить/Отклонить)
+async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обрабатывает нажатия на инлайн-кнопки"""
+    query = update.callback_query
+    await query.answer()
+    
+    data = query.data.split('_')
+    action = data[0]
+    user_id = int(data[1])
+    
+    if action == "approve":
+        tariff = '_'.join(data[2:])  # Собираем название тарифа обратно
+        
+        try:
+            # Создаем invite link для пользователя
+            invite_link = await context.bot.create_chat_invite_link(
+                chat_id=CHANNEL_ID,
+                member_limit=1
+            )
+            
+            # Отправляем ссылку пользователю
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=f"🎉 Ваша оплата подтверждена!\n\n"
+                     f"Тариф: {tariff}\n"
+                     f"Ссылка на канал: {invite_link.invite_link}\n\n"
+                     f"⚠️ Ссылка одноразовая, используйте её для входа в канал."
+            )
+            
+            # Обновляем сообщение админа
+            await query.edit_message_caption(
+                caption=query.message.caption + "\n\n✅ ОДОБРЕНО",
+                reply_markup=None
+            )
+            
+            # Планируем удаление если не навсегда
+            days = TARIFF_DAYS.get(tariff)
+            if days is not None:
+                # Отменяем предыдущую подписку если была
+                if user_id in active_subscriptions:
+                    active_subscriptions[user_id].cancel()
+                
+                # Создаем новую задачу на удаление
+                task = asyncio.create_task(
+                    remove_user_after_delay(context, user_id, days)
+                )
+                active_subscriptions[user_id] = task
+                
+                await context.bot.send_message(
+                    chat_id=ADMIN_ID,
+                    text=f"⏰ Пользователь {user_id} будет автоматически удален через {days} дн."
+                )
+            
+        except Exception as e:
+            logger.error(f"Ошибка одобрения: {e}")
+            await query.edit_message_caption(
+                caption=query.message.caption + f"\n\n❌ Ошибка: {e}",
+                reply_markup=None
+            )
+    
+    elif action == "reject":
+        try:
+            await context.bot.send_message(
+                chat_id=user_id,
+                text="❌ К сожалению, ваша оплата не подтверждена.\n"
+                     "Пожалуйста, свяжитесь с администратором."
+            )
+            
+            await query.edit_message_caption(
+                caption=query.message.caption + "\n\n❌ ОТКЛОНЕНО",
+                reply_markup=None
+            )
+        except Exception as e:
+            logger.error(f"Ошибка отклонения: {e}")
 
 # Обработчик кнопки "ОТМЕНА"
 async def handle_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -235,51 +397,10 @@ async def handle_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     """Возвращает к выбору тарифа"""
     await start(update, context)
 
-# Обработчик кнопки "ОПЛАТИТЬ"
-async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Обрабатывает оплату"""
-    selected_tariff = context.user_data.get('selected_tariff', 'Не выбран')
-    
-    # Цены для каждого тарифа
-    prices = {
-        "1 день ❤️": "500.00",
-        "Неделя ❤️❤️": "1 000.00",
-        "1 Месяц 💋💋": "2 000.00",
-        "6 Месяцев 😇🥰🔥": "6 000.00",
-        "Год🔥🍌💦👍🏻": "10 000.00",
-        "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": "15 000.00"
-    }
-    
-    price = prices.get(selected_tariff, "0.00")
-    
-    payment_text = f"""Способ оплаты: На карту Т-Банк
-К оплате: {price} 🇷🇺RUB
-Реквизиты для оплаты:
-2200701046225592
-Т-банк
-Наталия💖
-__________________________
-Вы платите физическому лицу.
-Деньги поступят на счёт получателя."""
-    
-    # Создаем кнопки после показа реквизитов
-    keyboard = [
-        [KeyboardButton("⏳ Я ОПЛАТИЛ")],
-        [KeyboardButton("👈 НАЗАД")]
-    ]
-    
-    reply_markup = ReplyKeyboardMarkup(
-        keyboard,
-        resize_keyboard=True,
-        one_time_keyboard=False
-    )
-    
-    await update.message.reply_text(payment_text, reply_markup=reply_markup)
-
 def main() -> None:
     """Запуск бота"""
     
-    # Вставьте сюда токен вашего бота от @BotFather
+    # Токен бота
     TOKEN = "8573720666:AAFY2LmmO8i4-MSXZuthGLh8fL2-_bjfmZc"
     
     # Создаем приложение
@@ -324,8 +445,11 @@ def main() -> None:
         handle_cancel
     ))
     
-    # Обработчик фото (должен быть в конце)
+    # Обработчик фото
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+    
+    # Обработчик callback кнопок
+    application.add_handler(CallbackQueryHandler(handle_callback))
     
     # Запускаем бота
     logger.info("Бот запущен...")
