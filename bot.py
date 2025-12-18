@@ -16,13 +16,45 @@ logger = logging.getLogger(__name__)
 ADMIN_ID = 7014721682
 
 # ID канала
-CHANNEL_ID = -1002199610557
+CHANNEL_ID = -1001002199610557
 
 # Множество для хранения ID пользователей
 registered_users = set()
 
 # Словарь для хранения активных подписок (user_id: task)
 active_subscriptions = {}
+
+# Статистика
+stats_data = {
+    'total_users': 0,
+    'total_purchases': 0,
+    'tariff_purchases': {
+        "1 день ❤️": 0,
+        "Неделя ❤️❤️": 0,
+        "1 Месяц 💋💋": 0,
+        "6 Месяцев 😇🥰🔥": 0,
+        "Год🔥🍌💦👍🏻": 0,
+        "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": 0
+    },
+    'revenue': {
+        "1 день ❤️": 0,
+        "Неделя ❤️❤️": 0,
+        "1 Месяц 💋💋": 0,
+        "6 Месяцев 😇🥰🔥": 0,
+        "Год🔥🍌💦👍🏻": 0,
+        "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": 0
+    }
+}
+
+# Цены тарифов
+TARIFF_PRICES = {
+    "1 день ❤️": 500,
+    "Неделя ❤️❤️": 1000,
+    "1 Месяц 💋💋": 2000,
+    "6 Месяцев 😇🥰🔥": 6000,
+    "Год🔥🍌💦👍🏻": 10000,
+    "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": 15000
+}
 
 # Длительность тарифов в днях
 TARIFF_DAYS = {
@@ -43,6 +75,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Уведомляем администратора только о новых пользователях
     if user.id not in registered_users:
         registered_users.add(user.id)
+        stats_data['total_users'] += 1
         try:
             await context.bot.send_message(
                 chat_id=ADMIN_ID,
@@ -347,6 +380,11 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 reply_markup=None
             )
             
+            # Обновляем статистику
+            stats_data['total_purchases'] += 1
+            stats_data['tariff_purchases'][tariff] += 1
+            stats_data['revenue'][tariff] += TARIFF_PRICES[tariff]
+            
             # Планируем удаление если не навсегда
             days = TARIFF_DAYS.get(tariff)
             if days is not None:
@@ -387,6 +425,48 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         except Exception as e:
             logger.error(f"Ошибка отклонения: {e}")
 
+# Обработчик команды /stats (только для админа)
+async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Показывает статистику (только для админа)"""
+    
+    user = update.effective_user
+    
+    # Проверяем что это админ
+    if user.id != ADMIN_ID:
+        await update.message.reply_text("❌ У вас нет доступа к этой команде.")
+        return
+    
+    # Считаем общую выручку
+    total_revenue = sum(stats_data['revenue'].values())
+    
+    # Считаем конверсию
+    conversion = 0
+    if stats_data['total_users'] > 0:
+        conversion = (stats_data['total_purchases'] / stats_data['total_users']) * 100
+    
+    # Формируем сообщение
+    stats_message = f"""📊 СТАТИСТИКА БОТА
+
+👥 Всего пользователей: {stats_data['total_users']}
+💰 Всего покупок: {stats_data['total_purchases']}
+📈 Конверсия: {conversion:.1f}%
+💵 Общая выручка: {total_revenue:,}₽
+
+━━━━━━━━━━━━━━━━━━
+📋 СТАТИСТИКА ПО ТАРИФАМ:
+
+"""
+    
+    # Добавляем статистику по каждому тарифу
+    for tariff_name, purchases in stats_data['tariff_purchases'].items():
+        revenue = stats_data['revenue'][tariff_name]
+        if purchases > 0:
+            stats_message += f"\n{tariff_name}\n"
+            stats_message += f"  Покупок: {purchases}\n"
+            stats_message += f"  Выручка: {revenue:,}₽\n"
+    
+    await update.message.reply_text(stats_message)
+
 # Обработчик кнопки "ОТМЕНА"
 async def handle_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Отменяет процесс оплаты"""
@@ -408,6 +488,7 @@ def main() -> None:
     
     # Регистрируем обработчики
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("stats", show_stats))
     
     # Главные кнопки
     application.add_handler(MessageHandler(
