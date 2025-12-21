@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 ADMIN_ID = 7014721682
 
 # ID канала
-CHANNEL_ID = -1001002199610557
+CHANNEL_ID = -1002199610557
 
 # Множество для хранения ID пользователей
 registered_users = set()
@@ -29,41 +29,37 @@ stats_data = {
     'total_users': 0,
     'total_purchases': 0,
     'tariff_purchases': {
+        "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": 0,
+        "Год🔥🍌💦👍🏻": 0,
         "1 день ❤️": 0,
         "Неделя ❤️❤️": 0,
-        "1 Месяц 💋💋": 0,
-        "6 Месяцев 😇🥰🔥": 0,
-        "Год🔥🍌💦👍🏻": 0,
-        "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": 0
+        "1 Месяц 💋💋": 0
     },
     'revenue': {
+        "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": 0,
+        "Год🔥🍌💦👍🏻": 0,
         "1 день ❤️": 0,
         "Неделя ❤️❤️": 0,
-        "1 Месяц 💋💋": 0,
-        "6 Месяцев 😇🥰🔥": 0,
-        "Год🔥🍌💦👍🏻": 0,
-        "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": 0
+        "1 Месяц 💋💋": 0
     }
 }
 
 # Цены тарифов
 TARIFF_PRICES = {
+    "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": 15000,
+    "Год🔥🍌💦👍🏻": 10000,
     "1 день ❤️": 500,
     "Неделя ❤️❤️": 1000,
-    "1 Месяц 💋💋": 2000,
-    "6 Месяцев 😇🥰🔥": 6000,
-    "Год🔥🍌💦👍🏻": 10000,
-    "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": 15000
+    "1 Месяц 💋💋": 2000
 }
 
 # Длительность тарифов в днях
 TARIFF_DAYS = {
+    "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": None,
+    "Год🔥🍌💦👍🏻": 365,
     "1 день ❤️": 1,
     "Неделя ❤️❤️": 7,
-    "1 Месяц 💋💋": 30,
-    "6 Месяцев 😇🥰🔥": 180,
-    "Год🔥🍌💦👍🏻": 365,
-    "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": None  # None = навсегда
+    "1 Месяц 💋💋": 30
 }
 
 # Обработчик команды /start
@@ -108,12 +104,11 @@ async def show_tariffs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     """Показывает список тарифов"""
     
     keyboard = [
+        [KeyboardButton("НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻")],
+        [KeyboardButton("Год🔥🍌💦👍🏻")],
         [KeyboardButton("1 день ❤️")],
         [KeyboardButton("Неделя ❤️❤️")],
         [KeyboardButton("1 Месяц 💋💋")],
-        [KeyboardButton("6 Месяцев 😇🥰🔥")],
-        [KeyboardButton("Год🔥🍌💦👍🏻")],
-        [KeyboardButton("НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻")],
         [KeyboardButton("👈 НАЗАД")]
     ]
     
@@ -155,6 +150,14 @@ async def handle_tariff(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     tariff = update.message.text
     
     tariff_info = {
+        "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": {
+            "price": "15 000.00",
+            "duration": "Навсегда"
+        },
+        "Год🔥🍌💦👍🏻": {
+            "price": "10 000.00",
+            "duration": "365 дней"
+        },
         "1 день ❤️": {
             "price": "500.00",
             "duration": "1 день"
@@ -166,18 +169,6 @@ async def handle_tariff(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         "1 Месяц 💋💋": {
             "price": "2 000.00",
             "duration": "30 дней"
-        },
-        "6 Месяцев 😇🥰🔥": {
-            "price": "6 000.00",
-            "duration": "180 дней"
-        },
-        "Год🔥🍌💦👍🏻": {
-            "price": "10 000.00",
-            "duration": "365 дней"
-        },
-        "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": {
-            "price": "15 000.00",
-            "duration": "Навсегда"
         }
     }
     
@@ -214,12 +205,11 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     selected_tariff = context.user_data.get('selected_tariff', 'Не выбран')
     
     prices = {
+        "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": "15 000.00",
+        "Год🔥🍌💦👍🏻": "10 000.00",
         "1 день ❤️": "500.00",
         "Неделя ❤️❤️": "1 000.00",
-        "1 Месяц 💋💋": "2 000.00",
-        "6 Месяцев 😇🥰🔥": "6 000.00",
-        "Год🔥🍌💦👍🏻": "10 000.00",
-        "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": "15 000.00"
+        "1 Месяц 💋💋": "2 000.00"
     }
     
     price = prices.get(selected_tariff, "0.00")
@@ -318,27 +308,24 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 # Функция автоматического удаления пользователя
 async def remove_user_after_delay(context: ContextTypes.DEFAULT_TYPE, user_id: int, days: int):
     """Удаляет пользователя из канала через указанное количество дней"""
-    await asyncio.sleep(days * 24 * 60 * 60)  # Конвертируем дни в секунды
+    await asyncio.sleep(days * 24 * 60 * 60)
     
     try:
         await context.bot.ban_chat_member(
             chat_id=CHANNEL_ID,
             user_id=user_id
         )
-        # Сразу разбаниваем чтобы можно было добавить снова
         await context.bot.unban_chat_member(
             chat_id=CHANNEL_ID,
             user_id=user_id
         )
         
-        # Уведомляем админа
         await context.bot.send_message(
             chat_id=ADMIN_ID,
             text=f"⏰ Подписка пользователя {user_id} истекла.\n"
                  f"Пользователь удален из канала."
         )
         
-        # Удаляем из активных подписок
         if user_id in active_subscriptions:
             del active_subscriptions[user_id]
             
@@ -351,21 +338,19 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     query = update.callback_query
     await query.answer()
     
-    data = query.data.split('_')
+    data = query.data.split('_', 2)
     action = data[0]
     user_id = int(data[1])
     
     if action == "approve":
-        tariff = '_'.join(data[2:])  # Собираем название тарифа обратно
+        tariff = data[2] if len(data) > 2 else 'Не указан'
         
         try:
-            # Создаем invite link для пользователя
             invite_link = await context.bot.create_chat_invite_link(
                 chat_id=CHANNEL_ID,
                 member_limit=1
             )
             
-            # Отправляем ссылку пользователю
             await context.bot.send_message(
                 chat_id=user_id,
                 text=f"🎉 Ваша оплата подтверждена!\n\n"
@@ -374,25 +359,21 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                      f"⚠️ Ссылка одноразовая, используйте её для входа в канал."
             )
             
-            # Обновляем сообщение админа
             await query.edit_message_caption(
                 caption=query.message.caption + "\n\n✅ ОДОБРЕНО",
                 reply_markup=None
             )
             
-            # Обновляем статистику
             stats_data['total_purchases'] += 1
-            stats_data['tariff_purchases'][tariff] += 1
-            stats_data['revenue'][tariff] += TARIFF_PRICES[tariff]
+            if tariff in stats_data['tariff_purchases']:
+                stats_data['tariff_purchases'][tariff] += 1
+                stats_data['revenue'][tariff] += TARIFF_PRICES.get(tariff, 0)
             
-            # Планируем удаление если не навсегда
             days = TARIFF_DAYS.get(tariff)
             if days is not None:
-                # Отменяем предыдущую подписку если была
                 if user_id in active_subscriptions:
                     active_subscriptions[user_id].cancel()
                 
-                # Создаем новую задачу на удаление
                 task = asyncio.create_task(
                     remove_user_after_delay(context, user_id, days)
                 )
@@ -431,20 +412,16 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     
     user = update.effective_user
     
-    # Проверяем что это админ
     if user.id != ADMIN_ID:
         await update.message.reply_text("❌ У вас нет доступа к этой команде.")
         return
     
-    # Считаем общую выручку
     total_revenue = sum(stats_data['revenue'].values())
     
-    # Считаем конверсию
     conversion = 0
     if stats_data['total_users'] > 0:
         conversion = (stats_data['total_purchases'] / stats_data['total_users']) * 100
     
-    # Формируем сообщение
     stats_message = f"""📊 СТАТИСТИКА БОТА
 
 👥 Всего пользователей: {stats_data['total_users']}
@@ -457,7 +434,6 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
 """
     
-    # Добавляем статистику по каждому тарифу
     for tariff_name, purchases in stats_data['tariff_purchases'].items():
         revenue = stats_data['revenue'][tariff_name]
         if purchases > 0:
@@ -480,17 +456,13 @@ async def handle_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 def main() -> None:
     """Запуск бота"""
     
-    # Токен бота
     TOKEN = "8573720666:AAFY2LmmO8i4-MSXZuthGLh8fL2-_bjfmZc"
     
-    # Создаем приложение
     application = Application.builder().token(TOKEN).build()
     
-    # Регистрируем обработчики
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("stats", show_stats))
     
-    # Главные кнопки
     application.add_handler(MessageHandler(
         filters.Regex("^💸 Тарифы$"), 
         show_tariffs
@@ -504,9 +476,8 @@ def main() -> None:
         show_tariffs
     ))
     
-    # Тарифы
     application.add_handler(MessageHandler(
-        filters.Regex("^(1 день ❤️|Неделя ❤️❤️|1 Месяц 💋💋|6 Месяцев 😇🥰🔥|Год🔥🍌💦👍🏻|НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻)$"), 
+        filters.Regex("^(НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻|Год🔥🍌💦👍🏻|1 день ❤️|Неделя ❤️❤️|1 Месяц 💋💋)$"), 
         handle_tariff
     ))
     application.add_handler(MessageHandler(
@@ -526,13 +497,9 @@ def main() -> None:
         handle_cancel
     ))
     
-    # Обработчик фото
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
-    
-    # Обработчик callback кнопок
     application.add_handler(CallbackQueryHandler(handle_callback))
     
-    # Запускаем бота
     logger.info("Бот запущен...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
