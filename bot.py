@@ -356,7 +356,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     user_id = int(data[1])
     
     if action == "approve":
-        tariff = data[2] if len(data) > 2 else 'Не указан'
+        tariff_code = data[2] if len(data) > 2 else 'unknown'
+        tariff = CODE_TO_TARIFF.get(tariff_code, 'Не указан')
         
         try:
             invite_link = await context.bot.create_chat_invite_link(
