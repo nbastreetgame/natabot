@@ -53,6 +53,18 @@ TARIFF_PRICES = {
     "1 Месяц 💋💋": 2000
 }
 
+# Короткие коды для тарифов (для callback_data)
+TARIFF_CODES = {
+    "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": "forever",
+    "Год🔥🍌💦👍🏻": "year",
+    "1 день ❤️": "day",
+    "Неделя ❤️❤️": "week",
+    "1 Месяц 💋💋": "month"
+}
+
+# Обратная связь кодов к названиям
+CODE_TO_TARIFF = {v: k for k, v in TARIFF_CODES.items()}
+
 # Длительность тарифов в днях
 TARIFF_DAYS = {
     "НАВСЕГДА 🤩🔥😇👅🍌💦😍👍🏻": None,
@@ -271,9 +283,10 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     photo = update.message.photo[-1]
     
     # Создаем инлайн-кнопки для админа
+    tariff_code = TARIFF_CODES.get(selected_tariff, 'unknown')
     keyboard = [
         [
-            InlineKeyboardButton("✅ Одобрить", callback_data=f"approve_{user.id}_{selected_tariff}"),
+            InlineKeyboardButton("✅ Одобрить", callback_data=f"approve_{user.id}_{tariff_code}"),
             InlineKeyboardButton("❌ Отклонить", callback_data=f"reject_{user.id}")
         ]
     ]
@@ -300,7 +313,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await start(update, context)
         
     except Exception as e:
-        logger.error(f"Ошибка отправки чека админу: {e}", exc_info=True)
+        logger.error(f"Ошибка отправки чека админу: {e}")
         await update.message.reply_text(
             "❌ Произошла ошибка. Попробуйте позже или свяжитесь с администратором."
         )
