@@ -300,7 +300,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await start(update, context)
         
     except Exception as e:
-        logger.error(f"Ошибка отправки чека админу: {e}")
+        logger.error(f"Ошибка отправки чека админу: {e}", exc_info=True)
         await update.message.reply_text(
             "❌ Произошла ошибка. Попробуйте позже или свяжитесь с администратором."
         )
